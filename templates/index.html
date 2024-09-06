@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Secure Cipher Shield</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-image: url('/static/j.jpg'); /* Path to your background image */
+      background-size: cover;
+      background-position: center;
+      color: #a52222; /* Text color */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh; /* Full viewport height */
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    button {
+      background-color: #5863c6; /* Button color */
+      color: white;
+      padding: 15px 32px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+      margin: 4px 2px;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+    button:hover {
+      background-color: #4650a5; /* Hover color */
+    }
+
+    .form-container {
+      width: 50%;
+      margin: 0 auto;
+      background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+      padding: 20px;
+      border-radius: 10px;
+      display: none; /* Hide forms by default */
+    }
+
+    input[type="file"], input[type="text"] {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 10px;
+      border-radius: 5px;
+      border: none;
+    }
+
+    input[type="file"] {
+      background-color: #e2ddec; /* Background color for file input */
+    }
+
+    input[type="text"]::placeholder {
+      color: #0d061c; /* Placeholder text color */
+    }
+
+    #goBackButton {
+      display: none; /* Hide go back button by default */
+      margin-top: 20px;
+    }
+    
+    #generatedKey {
+      margin-top: 10px;
+      padding: 10px;
+      background-color: #f1f1f1;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>Secure Cipher Shield</h1>
+  <div>
+    <button id="hideButton">Hide Text</button>
+    <button id="revealButton">Reveal Text</button>
+    <button id="generateKeyButton">Generate Key</button>
+  </div>
+
+  <div id="hideForm" class="form-container">
+    <h2>Hide a Message</h2>
+    <form id="hideTextForm" onsubmit="hideText(); return false;">
+      <input type="file" name="image" required><br>
+      <input type="text" id="hide-message" name="message" placeholder="Enter the message to hide" required><br>
+      <input type="text" id="hide-key" name="key" placeholder="Enter the key" required><br>
+      <span id="hide-key-error" class="error"></span>
+      <button type="submit">Hide</button>
+    </form>
+  </div>
+
+  <div id="revealForm" class="form-container">
+    <h2>Reveal a Message</h2>
+    <form id="revealTextForm" onsubmit="revealText(); return false;">
+      <input type="file" name="image" required><br>
+      <input type="text" id="reveal-key" name="key" placeholder="Enter the key" required><br>
+      <span id="reveal-key-error" class="error"></span>
+      <button type="submit">Reveal</button>
+    </form>
+  </div>
+
+  <div id="generatedKey"></div>
+  <button id="goBackButton" onclick="goBack()">Go Back</button>
+
+  <script>
+    const hideButton = document.getElementById("hideButton");
+    const revealButton = document.getElementById("revealButton");
+    const generateKeyButton = document.getElementById("generateKeyButton");
+    const hideForm = document.getElementById("hideForm");
+    const revealForm = document.getElementById("revealForm");
+    const generatedKeyDiv = document.getElementById("generatedKey");
+    const goBackButton = document.getElementById("goBackButton");
+
+    hideButton.addEventListener("click", () => {
+      hideForm.style.display = "block";
+      revealForm.style.display = "none";
+      generatedKeyDiv.style.display = "none"; // Hide generated key
+      hideButton.style.display = "none";
+      revealButton.style.display = "none";
+      generateKeyButton.style.display = "none";
+      goBackButton.style.display = "block";
+    });
+
+    revealButton.addEventListener("click", () => {
+      hideForm.style.display = "none";
+      revealForm.style.display = "block";
+      generatedKeyDiv.style.display = "none"; // Hide generated key
+      hideButton.style.display = "none";
+      revealButton.style.display = "none";
+      generateKeyButton.style.display = "none";
+      goBackButton.style.display = "block";
+    });
+
+    generateKeyButton.addEventListener("click", () => {
+      fetch('/generate_key')
+        .then(response => response.text())
+        .then(key => {
+          generatedKeyDiv.textContent = key;
+          generatedKeyDiv.style.display = "block";
+        })
+        .catch(error => console.error('Error generating key:', error));
+    });
+
+    function goBack() {
+      hideForm.style.display = "none";
+      revealForm.style.display = "none";
+      generatedKeyDiv.style.display = "none"; // Hide generated key
+      hideButton.style.display = "inline-block";
+      revealButton.style.display = "inline-block";
+      generateKeyButton.style.display = "inline-block";
+      goBackButton.style.display = "none";
+    }
+
+    function hideText() {
+      const form = document.getElementById("hideTextForm");
+      const formData = new FormData(form);
+
+      fetch('/hide', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to hide message.');
+        }
+        return response.blob();
+      })
+      .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'encoded_image.png';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+      })
+      .catch(error => {
+        console.error('Error hiding message:', error);
+        // Handle the error, e.g., display an error message to the user
+      });
+    }
+
+    function revealText() {
+      const form = document.getElementById("revealTextForm");
+      const formData = new FormData(form);
+
+      fetch('/reveal', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to reveal message.');
+        }
+        return response.text();
+      })
+      .then(message => {
+        alert("Revealed Message: " + message);
+        // Optionally, you can display the revealed message in some way, e.g., update a div
+      })
+      .catch(error => {
+        console.error('Error revealing message:', error);
+        // Handle the error, e.g., display an error message to the user
+      });
+    }
+  </script>
+</body>
+</html>
